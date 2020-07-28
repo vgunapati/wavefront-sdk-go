@@ -2,7 +2,7 @@ package senders
 
 const (
 	defaultBatchSize          = 10000
-	defaultBufferSize         = 50000
+	defaultBufferSize         = 500000
 	defaultFlushInterval      = 1
 	defaultProxyFlushInterval = 5
 )

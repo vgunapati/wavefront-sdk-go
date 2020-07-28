@@ -11,25 +11,27 @@ type Option func(*configuration)
 
 // Configuration for the direct ingestion sender
 type configuration struct {
-	Server string // Wavefront URL of the form https://<INSTANCE>.wavefront.com
-	Token  string // Wavefront API token with direct data ingestion permission
+	server string // Wavefront URL of the form https://<INSTANCE>.wavefront.com
+	token  string // Wavefront API token with direct data ingestion permission
 
 	// Optional configuration properties. Default values should suffice for most use cases.
 	// override the defaults only if you wish to set higher values.
 
 	// max batch of data sent per flush interval. defaults to 10,000. recommended not to exceed 40,000.
-	BatchSize int
+	batchSize int
 
 	// size of internal buffers beyond which received data is dropped.
 	// helps with handling brief increases in data and buffering on errors.
 	// separate buffers are maintained per data type (metrics, spans and distributions)
 	// buffers are not pre-allocated to max size and vary based on actual usage.
 	// defaults to 500,000. higher values could use more memory.
-	MaxBufferSize int
+	maxBufferSize int
 
 	// interval (in seconds) at which to flush data to Wavefront. defaults to 1 Second.
 	// together with batch size controls the max theoretical throughput of the sender.
-	FlushIntervalSeconds int
+	flushIntervalSeconds int
+
+	internalTags map[string]string
 }
 
 // NewSender creates Wavefront client
@@ -46,11 +48,11 @@ func NewSender(wfURL string, setters ...Option) (Sender, error) {
 	}
 
 	if len(u.User.String()) > 0 {
-		cfg.Token = u.User.String()
+		cfg.token = u.User.String()
 		u.User = nil
 	}
 
-	cfg.Server = u.String()
+	cfg.server = u.String()
 
 	for _, set := range setters {
 		set(cfg)
@@ -61,20 +63,27 @@ func NewSender(wfURL string, setters ...Option) (Sender, error) {
 // BatchSize set max batch of data sent per flush interval. defaults to 10,000. recommended not to exceed 40,000.
 func BatchSize(n int) Option {
 	return func(cfg *configuration) {
-		cfg.BatchSize = n
+		cfg.batchSize = n
 	}
 }
 
 // MaxBufferSize set the size of internal buffers beyond which received data is dropped.
 func MaxBufferSize(n int) Option {
 	return func(cfg *configuration) {
-		cfg.MaxBufferSize = n
+		cfg.maxBufferSize = n
 	}
 }
 
 // FlushIntervalSeconds set the interval (in seconds) at which to flush data to Wavefront. defaults to 1 Second.
 func FlushIntervalSeconds(n int) Option {
 	return func(cfg *configuration) {
-		cfg.FlushIntervalSeconds = n
+		cfg.flushIntervalSeconds = n
+	}
+}
+
+// InternalTags set the internal SDK metrics custom tags for the sender.
+func InternalTags(internalTags map[string]string) Option {
+	return func(cfg *configuration) {
+		cfg.internalTags = internalTags
 	}
 }

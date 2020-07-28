@@ -2,6 +2,7 @@ package senders
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -34,29 +35,37 @@ type wavefrontSender struct {
 	proxy bool
 }
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 // newWavefrontClient creates and returns a Wavefront Client instance
 func newWavefrontClient(cfg *configuration) (Sender, error) {
-	if cfg.BatchSize == 0 {
-		cfg.BatchSize = defaultBatchSize
+	if cfg.batchSize == 0 {
+		cfg.batchSize = defaultBatchSize
 	}
-	if cfg.MaxBufferSize == 0 {
-		cfg.MaxBufferSize = defaultBufferSize
+	if cfg.maxBufferSize == 0 {
+		cfg.maxBufferSize = defaultBufferSize
 	}
-	if cfg.FlushIntervalSeconds == 0 {
-		cfg.FlushIntervalSeconds = defaultFlushInterval
+	if cfg.flushIntervalSeconds == 0 {
+		cfg.flushIntervalSeconds = defaultFlushInterval
 	}
 
-	reporter := internal.NewReporter(cfg.Server, cfg.Token)
+	reporter := internal.NewReporter(cfg.server, cfg.token)
 
 	sender := &wavefrontSender{
 		defaultSource: internal.GetHostname("wavefront_direct_sender"),
-		proxy:         len(cfg.Token) == 0,
+		proxy:         len(cfg.token) == 0,
 	}
+
 	sender.internalRegistry = internal.NewMetricRegistry(
 		sender,
-		internal.SetPrefix("~sdk.go.core.sender.direct"),
+		internal.SetPrefix("~sdk.go.core.sender.wfclient"),
 		internal.SetTag("pid", strconv.Itoa(os.Getpid())),
+		internal.SetTag("instanceId", strconv.FormatInt(rand.Int63(), 16)),
+		internal.SetTags(cfg.internalTags),
 	)
+
 	sender.pointHandler = newLineHandler(reporter, cfg, internal.MetricFormat, "points", sender.internalRegistry)
 	sender.histoHandler = newLineHandler(reporter, cfg, internal.HistogramFormat, "histograms", sender.internalRegistry)
 	sender.spanHandler = newLineHandler(reporter, cfg, internal.TraceFormat, "spans", sender.internalRegistry)
@@ -68,16 +77,16 @@ func newWavefrontClient(cfg *configuration) (Sender, error) {
 }
 
 func newLineHandler(reporter internal.Reporter, cfg *configuration, format, prefix string, registry *internal.MetricRegistry) *internal.LineHandler {
-	flushInterval := time.Second * time.Duration(cfg.FlushIntervalSeconds)
+	flushInterval := time.Second * time.Duration(cfg.flushIntervalSeconds)
 
 	opts := []internal.LineHandlerOption{internal.SetHandlerPrefix(prefix), internal.SetRegistry(registry)}
-	batchSize := cfg.BatchSize
+	batchSize := cfg.batchSize
 	if format == internal.EventFormat {
 		batchSize = 1
 		opts = append(opts, internal.SetLockOnThrottledError(true))
 	}
 
-	return internal.NewLineHandler(reporter, format, flushInterval, batchSize, cfg.MaxBufferSize, opts...)
+	return internal.NewLineHandler(reporter, format, flushInterval, batchSize, cfg.maxBufferSize, opts...)
 }
 
 func (sender *wavefrontSender) Start() {

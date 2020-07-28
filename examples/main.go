@@ -43,8 +43,8 @@ func main() {
 
 	// OLD DIRECT way
 	directCfg := &senders.DirectConfiguration{
-		Server:               "https://-----.wavefront.com",
-		Token:                "--------------",
+		Server:               "https://nimba.wavefront.com",
+		Token:                "33a0e409-8851-4574-b5c8-09833d90457c",
 		BatchSize:            10000,
 		MaxBufferSize:        500000,
 		FlushIntervalSeconds: 1,

@@ -40,7 +40,12 @@ func SetInterval(interval int) RegistryOption {
 
 func SetTags(tags map[string]string) RegistryOption {
 	return func(registry *MetricRegistry) {
-		registry.tags = tags
+		if registry.tags == nil {
+			registry.tags = make(map[string]string)
+		}
+		for key, value := range tags {
+			registry.tags[key] = value
+		}
 	}
 }
 
