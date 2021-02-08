@@ -105,14 +105,16 @@ func (handler *ProxyConnectionHandler) Close() {
 func (handler *ProxyConnectionHandler) Flush() error {
 	handler.mtx.Lock()
 	defer handler.mtx.Unlock()
-
+	log.Println("flush out: ", handler.writer)
 	if handler.writer != nil {
 		err := handler.writer.Flush()
+		log.Println("inside flush error", err)
 		if err != nil {
 			handler.resetConnection()
 		}
 		return err
 	}
+	log.Println("Final flush out: ", handler.writer)
 	return nil
 }
 
@@ -123,7 +125,9 @@ func (handler *ProxyConnectionHandler) GetFailureCount() int64 {
 func (handler *ProxyConnectionHandler) SendData(lines string) error {
 	// if the connection was closed or interrupted - don't cause a panic (we'll retry at next interval)
 	defer func() {
-		if r := recover(); r != nil {
+		r := recover()
+		log.Println("recover error: ", r)
+		if r != nil {
 			// we couldn't write the line so something is wrong with the connection
 			log.Println("error sending data", r)
 			handler.mtx.Lock()
@@ -140,6 +144,7 @@ func (handler *ProxyConnectionHandler) SendData(lines string) error {
 		// Set a generous timeout to the write
 		handler.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 		_, err := fmt.Fprint(handler.writer, lines)
+		log.Println("Fprint error: ", err)
 		if err != nil {
 			handler.writeErrors.Inc()
 			atomic.AddInt64(&handler.failures, 1)
