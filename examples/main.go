@@ -9,7 +9,6 @@ import (
 
 	"github.com/wavefronthq/wavefront-sdk-go/application"
 	"github.com/wavefronthq/wavefront-sdk-go/event"
-
 	"github.com/wavefronthq/wavefront-sdk-go/senders"
 )
 
