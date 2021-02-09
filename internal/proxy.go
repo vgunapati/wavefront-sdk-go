@@ -38,6 +38,7 @@ func NewProxyConnectionHandler(address string, flushInterval time.Duration, pref
 		flushTicker:      time.NewTicker(flushInterval),
 		internalRegistry: internalRegistry,
 	}
+	log.Println("flush ticker: ", flushInterval)
 	proxyConnectionHandler.writeSuccesses = internalRegistry.NewDeltaCounter(prefix + ".write.success")
 	proxyConnectionHandler.writeErrors = internalRegistry.NewDeltaCounter(prefix + ".write.errors")
 	return proxyConnectionHandler
@@ -45,7 +46,7 @@ func NewProxyConnectionHandler(address string, flushInterval time.Duration, pref
 
 func (handler *ProxyConnectionHandler) Start() {
 	handler.done = make(chan struct{})
-
+	log.Println("flushTicker start is called")
 	go func() {
 		for {
 			select {
