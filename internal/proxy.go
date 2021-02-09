@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 const (
-	defaultBufSize = 4096
+	defaultBufSize string = "4096"
 )
 
 type ProxyConnectionHandler struct {
@@ -78,8 +79,14 @@ func (handler *ProxyConnectionHandler) Connect() error {
 		return fmt.Errorf("unable to connect to Wavefront proxy at address: %s, err: %q", handler.address, err)
 	}
 	log.Printf("connected to Wavefront proxy at address: %s", handler.address)
-	bufSize = internal.getEnv("PROXY_BUFFER_SIZE", defaultBufSize)
-	handler.writer = bufio.NewWriterSize(handler.conn, bufSize)
+
+	bufSize := getEnv("PROXY_BUFFER_SIZE", defaultBufSize)
+	ibufSize, err := strconv.Atoi(bufSize)
+	if err != nil {
+		log.Printf("falling back to default buffer size of %s: %s", defaultBufSize, err)
+		ibufSize, _ = strconv.Atoi(defaultBufSize)
+	}
+	handler.writer = bufio.NewWriterSize(handler.conn, ibufSize)
 	return nil
 }
 
