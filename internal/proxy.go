@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+const (
+	defaultBufSize = 4096
+)
+
 type ProxyConnectionHandler struct {
 	// keep this as first element of struct to guarantee 64-bit alignment ton 32-bit machines.
 	// atomic.* functions crash if the operand is not 64-bit aligned.
@@ -45,7 +49,9 @@ func (handler *ProxyConnectionHandler) Start() {
 		for {
 			select {
 			case <-handler.flushTicker.C:
+				log.Println("Before Flush", handler.flushTicker)
 				err := handler.Flush()
+				log.Printf("After Flush: %s", err)
 				if err != nil {
 					log.Println(err)
 				}
@@ -72,7 +78,8 @@ func (handler *ProxyConnectionHandler) Connect() error {
 		return fmt.Errorf("unable to connect to Wavefront proxy at address: %s, err: %q", handler.address, err)
 	}
 	log.Printf("connected to Wavefront proxy at address: %s", handler.address)
-	handler.writer = bufio.NewWriter(handler.conn)
+	bufSize = internal.getEnv("PROXY_BUFFER_SIZE", defaultBufSize)
+	handler.writer = bufio.NewWriterSize(handler.conn, bufSize)
 	return nil
 }
 

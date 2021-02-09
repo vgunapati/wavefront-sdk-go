@@ -34,3 +34,10 @@ func GetSemVer(version string) (float64, error) {
 	}
 	return float64(0), nil
 }
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
