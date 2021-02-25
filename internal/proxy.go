@@ -45,15 +45,13 @@ func NewProxyConnectionHandler(address string, flushInterval time.Duration, pref
 }
 
 func (handler *ProxyConnectionHandler) Start() {
+
 	handler.done = make(chan struct{})
-	log.Println("flushTicker start is called")
 	go func() {
 		for {
 			select {
 			case <-handler.flushTicker.C:
-				log.Println("Before Flush", handler.flushTicker)
 				err := handler.Flush()
-				log.Printf("After Flush: %s", err)
 				if err != nil {
 					log.Println(err)
 				}
@@ -87,6 +85,7 @@ func (handler *ProxyConnectionHandler) Connect() error {
 		log.Printf("falling back to default buffer size of %s: %s", defaultBufSize, err)
 		ibufSize, _ = strconv.Atoi(defaultBufSize)
 	}
+	log.Printf("bufio buffer size is set to %d", ibufSize)
 	handler.writer = bufio.NewWriterSize(handler.conn, ibufSize)
 	return nil
 }
@@ -120,16 +119,14 @@ func (handler *ProxyConnectionHandler) Close() {
 func (handler *ProxyConnectionHandler) Flush() error {
 	handler.mtx.Lock()
 	defer handler.mtx.Unlock()
-	log.Println("flush out: ", handler.writer)
+
 	if handler.writer != nil {
 		err := handler.writer.Flush()
-		log.Println("inside flush error", err)
 		if err != nil {
 			handler.resetConnection()
 		}
 		return err
 	}
-	log.Println("Final flush out: ", handler.writer)
 	return nil
 }
 
@@ -141,7 +138,6 @@ func (handler *ProxyConnectionHandler) SendData(lines string) error {
 	// if the connection was closed or interrupted - don't cause a panic (we'll retry at next interval)
 	defer func() {
 		r := recover()
-		log.Println("recover error: ", r)
 		if r != nil {
 			// we couldn't write the line so something is wrong with the connection
 			log.Println("error sending data", r)
@@ -159,7 +155,6 @@ func (handler *ProxyConnectionHandler) SendData(lines string) error {
 		// Set a generous timeout to the write
 		handler.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 		_, err := fmt.Fprint(handler.writer, lines)
-		log.Println("Fprint error: ", err)
 		if err != nil {
 			handler.writeErrors.Inc()
 			atomic.AddInt64(&handler.failures, 1)
